@@ -17,9 +17,9 @@ type Config struct {
 var (
 	plugin = Config{
 		PluginConfig: sensu.PluginConfig{
-			Name:     "{{ .GithubProject }}",
-			Short:    "{{ .Description }}",
-			Keyspace: "sensu.io/plugins/{{ .GithubProject }}/config",
+			Name:     "sensu-airflow-check",
+			Short:    "A plugin for checking the health of airflow 2.0 and running dags in Sensu.",
+			Keyspace: "sensu.io/plugins/sensu-airflow-check/config",
 		},
 	}
 

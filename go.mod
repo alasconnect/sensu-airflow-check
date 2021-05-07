@@ -1,4 +1,4 @@
-module github.com/{{ .GithubUser }}/{{ .GithubProject }}
+module github.com/alasconnect/sensu-airflow-check
 
 go 1.14
 

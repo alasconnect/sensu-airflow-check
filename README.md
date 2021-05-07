@@ -1,8 +1,6 @@
-{{- /* Ignore this text, until templating is ran via [sensu-plugin-tool](https://github.com/sensu-community/sensu-plugin-tool) the below badge links wiill not render */ -}}
-
-[![Sensu Bonsai Asset](https://img.shields.io/badge/Bonsai-Download%20Me-brightgreen.svg?colorB=89C967&logo=sensu)](https://bonsai.sensu.io/assets/{{ .GithubUser }}/{{ .GithubProject }})
-![Go Test](https://github.com/{{ .GithubUser }}/{{ .GithubProject }}/workflows/Go%20Test/badge.svg)
-![goreleaser](https://github.com/{{ .GithubUser }}/{{ .GithubProject }}/workflows/goreleaser/badge.svg)
+[![Sensu Bonsai Asset](https://img.shields.io/badge/Bonsai-Download%20Me-brightgreen.svg?colorB=89C967&logo=sensu)](https://bonsai.sensu.io/assets/alasconnect/sensu-airflow-check)
+![Go Test](https://github.com/alasconnect/sensu-airflow-check/workflows/Go%20Test/badge.svg)
+![goreleaser](https://github.com/alasconnect/sensu-airflow-check/workflows/goreleaser/badge.svg)
 
 # Check Plugin Template
 
@@ -20,7 +18,7 @@ and customize the `checkArgs` and `executeCheck` functions in [main.go][7].
 
 When writing or updating a plugin's README from this template, review the Sensu Community
 [plugin README style guide][3] for content suggestions and guidance. Remove everything
-prior to `# {{ .Name }}` from the generated README file, and add additional context about the
+prior to `# sensu-airflow-check` from the generated README file, and add additional context about the
 plugin per the style guide.
 
 ## Releases with Github Actions
@@ -31,7 +29,7 @@ the plugin with goreleaser. Register the asset with [Bonsai][8] to share it with
 
 ***
 
-# {{ .Name }}
+# sensu-airflow-check
 
 ## Table of Contents
 - [Overview](#overview)
@@ -46,7 +44,7 @@ the plugin with goreleaser. Register the asset with [Bonsai][8] to share it with
 
 ## Overview
 
-The {{ .Name }} is a [Sensu Check][6] that ...
+The sensu-airflow-check is a [Sensu Check][6] that ...
 
 ## Files
 
@@ -61,10 +59,10 @@ consider doing so! If you're using sensuctl 5.13 with Sensu Backend 5.13 or late
 following command to add the asset:
 
 ```
-sensuctl asset add {{ .GithubUser }}/{{ .GithubProject }}
+sensuctl asset add alasconnect/sensu-airflow-check
 ```
 
-If you're using an earlier version of sensuctl, you can find the asset on the [Bonsai Asset Index][https://bonsai.sensu.io/assets/{{ .GithubUser }}/{{ .GithubProject }}].
+If you're using an earlier version of sensuctl, you can find the asset on the [Bonsai Asset Index][https://bonsai.sensu.io/assets/alasconnect/sensu-airflow-check].
 
 ### Check definition
 
@@ -73,14 +71,14 @@ If you're using an earlier version of sensuctl, you can find the asset on the [B
 type: CheckConfig
 api_version: core/v2
 metadata:
-  name: {{ .GithubProject }}
+  name: sensu-airflow-check
   namespace: default
 spec:
-  command: {{ .GithubProject }} --example example_arg
+  command: sensu-airflow-check --example example_arg
   subscriptions:
   - system
   runtime_assets:
-  - {{ .GithubUser }}/{{ .GithubProject }}
+  - alasconnect/sensu-airflow-check
 ```
 
 ## Installation from source
@@ -89,7 +87,7 @@ The preferred way of installing and deploying this plugin is to use it as an Ass
 like to compile and install the plugin from source or contribute to it, download the latest version
 or create an executable script from this source.
 
-From the local path of the {{ .GithubProject }} repository:
+From the local path of the sensu-airflow-check repository:
 
 ```
 go build
