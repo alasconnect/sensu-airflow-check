@@ -109,7 +109,7 @@ func executeCheck(event *types.Event) (int, error) {
 	} else if importErrors.TotalEntries > 0 {
 		criticals++
 		for _, ie := range importErrors.ImportErrors {
-			fmt.Printf("Airflow encountered an error while importing dag: %s\n%v\n", ie.FileName, ie.StackTrace)
+			fmt.Printf("Airflow encountered an error while importing DAG: %s\n%v\n", ie.FileName, ie.StackTrace)
 		}
 	}
 

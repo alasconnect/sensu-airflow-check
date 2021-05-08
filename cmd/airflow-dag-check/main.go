@@ -26,7 +26,7 @@ var (
 	plugin = Config{
 		PluginConfig: sensu.PluginConfig{
 			Name:     "sensu-airflow-check",
-			Short:    "A plugin for checking the health of airflow 2.0 dag runs in Sensu.",
+			Short:    "A plugin for checking the health of airflow 2.0 DAG runs in Sensu.",
 			Keyspace: "sensu.io/plugins/airflow-dag-check/config",
 		},
 	}
@@ -65,7 +65,7 @@ var (
 			Argument:  "dag",
 			Shorthand: "d",
 			Default:   []string{},
-			Usage:     "Explicit list of dags to check.",
+			Usage:     "Explicit list of DAGs to check.",
 			Value:     &plugin.Dags,
 		},
 		{
@@ -163,7 +163,7 @@ func executeCheck(event *types.Event) (int, error) {
 	if found {
 		fmt.Printf("All health checks returning OK for loaded DAGs")
 	} else {
-		fmt.Printf("No DAGS loaded")
+		fmt.Printf("No DAGs loaded")
 	}
 
 	return sensu.CheckStateOK, nil
@@ -188,7 +188,7 @@ func checkDags(dags []string, explicit bool, client *http.Client) []Health {
 		dag, err = getDag(dagId, client)
 
 		if dag == nil {
-			health.Error = fmt.Errorf("could not retrieve dag: %s\n%v", dagId, err)
+			health.Error = fmt.Errorf("could not retrieve DAG: %s\n%v", dagId, err)
 			health.Status = sensu.CheckStateCritical
 		} else if explicit && dag.IsPaused {
 			health.Error = fmt.Errorf("DAG is paused and will not process: %s", dagId)
@@ -230,14 +230,14 @@ func getDag(dagId string, client *http.Client) (*Dag, error) {
 	if err != nil {
 		return nil, err
 	} else if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("get dag request returned an invalid status code: %s", resp.Status)
+		return nil, fmt.Errorf("get DAG request returned an invalid status code: %s", resp.Status)
 	}
 
 	defer resp.Body.Close()
 
 	var result Dag
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode dag response: %v", err)
+		return nil, fmt.Errorf("failed to decode DAG response: %v", err)
 	}
 
 	return &result, nil
@@ -261,14 +261,14 @@ func getAllDags(client *http.Client) (*DagList, error) {
 	if err != nil {
 		return nil, err
 	} else if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("get all dags request returned an invalid status code: %s", resp.Status)
+		return nil, fmt.Errorf("get all DAGs request returned an invalid status code: %s", resp.Status)
 	}
 
 	defer resp.Body.Close()
 
 	var result DagList
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode dag list response: %v", err)
+		return nil, fmt.Errorf("failed to decode DAG list response: %v", err)
 	}
 
 	return &result, nil
@@ -315,14 +315,14 @@ func getDagRuns(dagId string, limit int, offset int, client *http.Client) (*DagR
 	if err != nil {
 		return nil, err
 	} else if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("get latest dag run request returned an invalid status code: %s", resp.Status)
+		return nil, fmt.Errorf("get latest DAG run request returned an invalid status code: %s", resp.Status)
 	}
 
 	defer resp.Body.Close()
 
 	var result DagRunList
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode dag run list response: %v", err)
+		return nil, fmt.Errorf("failed to decode DAG run list response: %v", err)
 	}
 
 	return &result, nil
