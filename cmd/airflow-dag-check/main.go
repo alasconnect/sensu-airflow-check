@@ -36,7 +36,7 @@ var (
 			Path:      "airflow-api-url",
 			Env:       "",
 			Argument:  "url",
-			Shorthand: "url",
+			Shorthand: "u",
 			Default:   "https://127.0.0.1:8081/",
 			Usage:     "The base URL of the airflow REST API.",
 			Value:     &plugin.AirflowApiUrl,
@@ -45,7 +45,7 @@ var (
 			Path:      "airflow-username",
 			Env:       "",
 			Argument:  "username",
-			Shorthand: "un",
+			Shorthand: "n",
 			Default:   "",
 			Usage:     "The username used to authenticate against the airflow API.",
 			Value:     &plugin.AirflowUsername,
@@ -54,7 +54,7 @@ var (
 			Path:      "airflow-password",
 			Env:       "",
 			Argument:  "password",
-			Shorthand: "pw",
+			Shorthand: "p",
 			Default:   "",
 			Usage:     "The password used to authenticate against the airflow API.",
 			Value:     &plugin.AirflowPassword,
@@ -72,7 +72,7 @@ var (
 			Path:      "timeout",
 			Env:       "",
 			Argument:  "timeout",
-			Shorthand: "to",
+			Shorthand: "t",
 			Default:   15,
 			Usage:     "Request timeout in seconds",
 			Value:     &plugin.Timeout,
@@ -196,10 +196,11 @@ func checkDags(dags []string, explicit bool, client *http.Client) []Health {
 		} else {
 			var dagRun *DagRun
 			dagRun, err = getLatestDagRun(dagId, client)
-			health.Error = err
 
-			// if the dag has not run, ignore it
-			if dagRun != nil && dagRun.State == "failed" {
+			if err != nil {
+				health.Error = err
+				health.Status = sensu.CheckStateCritical
+			} else if dagRun != nil && dagRun.State == "failed" {
 				health.Error = fmt.Errorf("DAG failed its last execution: %s", dagId)
 				health.Status = sensu.CheckStateCritical
 			}
@@ -228,6 +229,8 @@ func getDag(dagId string, client *http.Client) (*Dag, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
+	} else if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("get dag request returned an invalid status code: %s", resp.Status)
 	}
 
 	defer resp.Body.Close()
@@ -257,6 +260,8 @@ func getAllDags(client *http.Client) (*DagList, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
+	} else if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("get all dags request returned an invalid status code: %s", resp.Status)
 	}
 
 	defer resp.Body.Close()
@@ -279,7 +284,26 @@ type DagRunList struct {
 }
 
 func getLatestDagRun(dagId string, client *http.Client) (*DagRun, error) {
-	req, err := http.NewRequest("GET", getAirflowApiUrl()+"/dags/"+dagId+"/dagRuns?limit=1", nil)
+	dagRuns, err := getDagRuns(dagId, 1, 0, client)
+	if err != nil {
+		return nil, err
+	} else if dagRuns.TotalEntries == 0 {
+		return nil, nil
+	}
+
+	dagRuns, err = getDagRuns(dagId, 1, dagRuns.TotalEntries-1, client)
+
+	if err != nil {
+		return nil, err
+	} else if len(dagRuns.DagRuns) == 0 {
+		return nil, nil
+	} else {
+		return &dagRuns.DagRuns[0], nil
+	}
+}
+
+func getDagRuns(dagId string, limit int, offset int, client *http.Client) (*DagRunList, error) {
+	req, err := http.NewRequest("GET", getAirflowApiUrl()+"/dags/"+dagId+"/dagRuns?limit="+fmt.Sprint(limit)+"&offset="+fmt.Sprint(offset), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -290,6 +314,8 @@ func getLatestDagRun(dagId string, client *http.Client) (*DagRun, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
+	} else if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("get latest dag run request returned an invalid status code: %s", resp.Status)
 	}
 
 	defer resp.Body.Close()
@@ -299,11 +325,7 @@ func getLatestDagRun(dagId string, client *http.Client) (*DagRun, error) {
 		return nil, fmt.Errorf("failed to decode dag run list response: %v", err)
 	}
 
-	if len(result.DagRuns) == 0 {
-		return nil, nil
-	}
-
-	return &result.DagRuns[0], nil
+	return &result, nil
 }
 
 func getAirflowApiUrl() string {

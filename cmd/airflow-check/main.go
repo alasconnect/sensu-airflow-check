@@ -35,7 +35,7 @@ var (
 			Path:      "airflow-api-url",
 			Env:       "",
 			Argument:  "url",
-			Shorthand: "url",
+			Shorthand: "u",
 			Default:   "https://127.0.0.1:8081/",
 			Usage:     "The base URL of the airflow REST API.",
 			Value:     &plugin.AirflowApiUrl,
@@ -44,7 +44,7 @@ var (
 			Path:      "airflow-username",
 			Env:       "",
 			Argument:  "username",
-			Shorthand: "un",
+			Shorthand: "n",
 			Default:   "",
 			Usage:     "The username used to authenticate against the airflow API.",
 			Value:     &plugin.AirflowUsername,
@@ -53,7 +53,7 @@ var (
 			Path:      "airflow-password",
 			Env:       "",
 			Argument:  "password",
-			Shorthand: "pw",
+			Shorthand: "p",
 			Default:   "",
 			Usage:     "The password used to authenticate against the airflow API.",
 			Value:     &plugin.AirflowPassword,
@@ -62,7 +62,7 @@ var (
 			Path:      "timeout",
 			Env:       "",
 			Argument:  "timeout",
-			Shorthand: "to",
+			Shorthand: "t",
 			Default:   15,
 			Usage:     "Request timeout in seconds",
 			Value:     &plugin.Timeout,
@@ -97,7 +97,6 @@ func executeCheck(event *types.Event) (int, error) {
 	client.Transport = http.DefaultTransport
 	client.Timeout = time.Duration(plugin.Timeout) * time.Second
 
-	warnings := 0
 	criticals := 0
 
 	var err error
@@ -107,12 +106,10 @@ func executeCheck(event *types.Event) (int, error) {
 	if err != nil {
 		fmt.Printf("Error occurred while checking airflow import errors:\n%v\n", err)
 		criticals++
-	} else {
-		if importErrors.TotalEntries > 0 {
-			warnings++
-			for _, ie := range importErrors.ImportErrors {
-				fmt.Printf("Airflow encountered an error while importing dag: %s\n%v\n", ie.FileName, ie.StackTrace)
-			}
+	} else if importErrors.TotalEntries > 0 {
+		criticals++
+		for _, ie := range importErrors.ImportErrors {
+			fmt.Printf("Airflow encountered an error while importing dag: %s\n%v\n", ie.FileName, ie.StackTrace)
 		}
 	}
 
@@ -137,8 +134,6 @@ func executeCheck(event *types.Event) (int, error) {
 	result := sensu.CheckStateOK
 	if criticals > 0 {
 		result = sensu.CheckStateCritical
-	} else if warnings > 0 {
-		result = sensu.CheckStateWarning
 	}
 	return result, nil
 }
@@ -169,6 +164,8 @@ func getHealth(client *http.Client) (*Health, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
+	} else if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("health request returned an invalid status code: %s", resp.Status)
 	}
 
 	defer resp.Body.Close()
@@ -204,6 +201,8 @@ func getImportErrors(client *http.Client) (*ImportErrors, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
+	} else if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("import errors request returned an invalid status code: %s", resp.Status)
 	}
 
 	defer resp.Body.Close()
