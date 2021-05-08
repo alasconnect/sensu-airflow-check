@@ -2,33 +2,6 @@
 ![Go Test](https://github.com/alasconnect/sensu-airflow-check/workflows/Go%20Test/badge.svg)
 ![goreleaser](https://github.com/alasconnect/sensu-airflow-check/workflows/goreleaser/badge.svg)
 
-# Check Plugin Template
-
-## Overview
-check-plugin-template is a template repository which wraps the [Sensu Plugin SDK][2].
-To use this project as a template, click the "Use this template" button from the main project page.
-Once the repository is created from this template, you can use the [Sensu Plugin Tool][9] to
-populate the templated fields with the proper values.
-
-## Functionality
-
-After successfully creating a project from this template, update the `Config` struct with any
-configuration options for the plugin, map those values as plugin options in the variable `options`,
-and customize the `checkArgs` and `executeCheck` functions in [main.go][7].
-
-When writing or updating a plugin's README from this template, review the Sensu Community
-[plugin README style guide][3] for content suggestions and guidance. Remove everything
-prior to `# sensu-airflow-check` from the generated README file, and add additional context about the
-plugin per the style guide.
-
-## Releases with Github Actions
-
-To release a version of your project, simply tag the target sha with a semver release without a `v`
-prefix (ex. `1.0.0`). This will trigger the [GitHub action][5] workflow to [build and release][4]
-the plugin with goreleaser. Register the asset with [Bonsai][8] to share it with the community!
-
-***
-
 # sensu-airflow-check
 
 ## Table of Contents
@@ -44,13 +17,38 @@ the plugin with goreleaser. Register the asset with [Bonsai][8] to share it with
 
 ## Overview
 
-The sensu-airflow-check is a [Sensu Check][6] that ...
+The sensu-airflow-check is a [Sensu Check][6] that provides monitoring for airflow and DAGs.
 
-## Files
+## Checks
+
+This collection contains the following checks:
+
+ - airflow-check - for checking the health of the airflow metadatabase and scheduler.
+ - airflow-dag-check - for checking DAG runs for all or a specific list of DAGs
 
 ## Usage examples
 
+```
+airflow-check --url http://localhost:8080/ --username admin --password admin
+```
+
+```
+# Will check all loaded DAGs
+airflow-dag-check --url http://localhost:8080/ --username admin --password admin
+```
+
+```
+# Will check specific DAGs and will fail if one of the DAGs does not exist
+airflow-dag-check --url http://localhost:8080/ --username admin --password admin --dag my_dag_id --dag my_other_dag_id
+```
+
 ## Configuration
+
+The airflow API must be configured.
+Typically, this means setting the following line in the `[api]` section:
+```
+auth_backend = airflow.api.auth.backend.basic_auth
+```
 
 ### Asset registration
 
@@ -66,15 +64,34 @@ If you're using an earlier version of sensuctl, you can find the asset on the [B
 
 ### Check definition
 
+#### airflow-check
+
 ```yml
 ---
 type: CheckConfig
 api_version: core/v2
 metadata:
-  name: sensu-airflow-check
+  name: airflow-check
   namespace: default
 spec:
-  command: sensu-airflow-check --example example_arg
+  command: airflow-check --url {url} --username {username} --password {password}
+  subscriptions:
+  - system
+  runtime_assets:
+  - alasconnect/sensu-airflow-check
+```
+
+#### airflow-dag-check
+
+```yml
+---
+type: CheckConfig
+api_version: core/v2
+metadata:
+  name: airflow-dag-check
+  namespace: default
+spec:
+  command: airflow-dag-check --url {url} --username {username} --password {password} --dag {dag_id_1} --dag {dag_id_2}
   subscriptions:
   - system
   runtime_assets:
@@ -90,7 +107,8 @@ or create an executable script from this source.
 From the local path of the sensu-airflow-check repository:
 
 ```
-go build
+go build -o bin/airflow-check ./cmd/airflow-check
+go build -o bin/airflow-dag-check ./cmd/airflow-dag-check
 ```
 
 ## Additional notes
