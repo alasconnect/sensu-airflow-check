@@ -25,8 +25,8 @@ type Config struct {
 var (
 	plugin = Config{
 		PluginConfig: sensu.PluginConfig{
-			Name:     "sensu-airflow-check",
-			Short:    "A plugin for checking the health of airflow 2.0 DAG runs in Sensu.",
+			Name:     "airflow-dag-check",
+			Short:    "Checks the health of Airflow 2.x DAG runs in Sensu.",
 			Keyspace: "sensu.io/plugins/airflow-dag-check/config",
 		},
 	}
@@ -37,7 +37,7 @@ var (
 			Env:       "",
 			Argument:  "url",
 			Shorthand: "u",
-			Default:   "https://127.0.0.1:8081/",
+			Default:   "http://127.0.0.1:8080/",
 			Usage:     "The base URL of the airflow REST API.",
 			Value:     &plugin.AirflowApiUrl,
 		},
@@ -144,9 +144,9 @@ func executeCheck(event *types.Event) (int, error) {
 		case sensu.CheckStateCritical:
 			criticals++
 			fmt.Printf("%s CRITICAL\n", h.DagId)
-		case sensu.CheckStateUnknown:
+		default:
 			unknowns++
-			fmt.Printf("%s UNKNOWN\n", h.DagId)
+			fmt.Printf("%s Unknown error code returned\n", h.DagId)
 		}
 
 		if h.Error != nil {

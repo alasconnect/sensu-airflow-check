@@ -15,16 +15,18 @@ import (
 // Config represents the check plugin config.
 type Config struct {
 	sensu.PluginConfig
-	AirflowApiUrl string
-	Timeout       int
+	AirflowApiUrl   string
+	AirflowUsername string
+	AirflowPassword string
+	Timeout         int
 }
 
 var (
 	plugin = Config{
 		PluginConfig: sensu.PluginConfig{
-			Name:     "airflow-check",
-			Short:    "Check the health endpoint of Airflow 2.x. Returns critical if not healthy.",
-			Keyspace: "sensu.io/plugins/airflow-check/config",
+			Name:     "airflow-import-check",
+			Short:    "Check the Airflow 2.x DAG import errors endpoint. Returns critical if there are errors.",
+			Keyspace: "sensu.io/plugins/airflow-import-check/config",
 		},
 	}
 
@@ -37,6 +39,24 @@ var (
 			Default:   "http://127.0.0.1:8080/",
 			Usage:     "The base URL of the airflow REST API.",
 			Value:     &plugin.AirflowApiUrl,
+		},
+		{
+			Path:      "airflow-username",
+			Env:       "",
+			Argument:  "username",
+			Shorthand: "n",
+			Default:   "",
+			Usage:     "The username used to authenticate against the airflow API.",
+			Value:     &plugin.AirflowUsername,
+		},
+		{
+			Path:      "airflow-password",
+			Env:       "",
+			Argument:  "password",
+			Shorthand: "p",
+			Default:   "",
+			Usage:     "The password used to authenticate against the airflow API.",
+			Value:     &plugin.AirflowPassword,
 		},
 		{
 			Path:      "timeout",
@@ -61,6 +81,14 @@ func checkArgs(event *types.Event) (int, error) {
 		return sensu.CheckStateWarning, fmt.Errorf("failed to parse airflow URL %s: %v", plugin.AirflowApiUrl, err)
 	}
 
+	if plugin.AirflowUsername == "" {
+		return sensu.CheckStateWarning, fmt.Errorf("airflow username is required")
+	}
+
+	if plugin.AirflowPassword == "" {
+		return sensu.CheckStateWarning, fmt.Errorf("airflow password is required")
+	}
+
 	return sensu.CheckStateOK, nil
 }
 
@@ -72,21 +100,16 @@ func executeCheck(event *types.Event) (int, error) {
 	critical := false
 	var err error
 
-	var health *Health
-	health, err = getHealth(client)
+	var importErrors *ImportErrors
+	importErrors, err = getImportErrors(client)
 
 	if err != nil {
-		fmt.Printf("Error occurred while checking airflow health:\n%v\n", err)
+		fmt.Printf("Error occurred while checking airflow import errors:\n%v\n", err)
 		critical = true
-	} else {
-		if health.MetaDatabaseHealth.Status != "healthy" {
-			fmt.Printf("Airflow metadatabase is in trouble.")
-			critical = true
-		}
-
-		if health.Scheduler.Status != "healthy" {
-			fmt.Printf("Airflow scheduler is in trouble.")
-			critical = true
+	} else if importErrors.TotalEntries > 0 {
+		critical = true
+		for _, ie := range importErrors.ImportErrors {
+			fmt.Printf("Airflow encountered an error while importing DAG: %s\n%v\n", ie.FileName, ie.StackTrace)
 		}
 	}
 
@@ -96,18 +119,15 @@ func executeCheck(event *types.Event) (int, error) {
 	return sensu.CheckStateOK, nil
 }
 
-type MetaDatabaseHealth struct {
-	Status string `json:"status"`
+type ImportError struct {
+	TimeStamp  string `json:"timestamp"`
+	FileName   string `json:"filename"`
+	StackTrace string `json:"stack_trace"`
 }
 
-type SchedulerHealth struct {
-	Status                   string `json:"status"`
-	LatestSchedulerHeartbeat string `json:"latest_scheduler_heartbeat"`
-}
-
-type Health struct {
-	MetaDatabaseHealth MetaDatabaseHealth `json:"metadatabase"`
-	Scheduler          SchedulerHealth    `json:"scheduler"`
+type ImportErrors struct {
+	ImportErrors []ImportError `json:"import_errors"`
+	TotalEntries int           `json:"total_entries"`
 }
 
 func getAirflowApiUrl() string {
@@ -115,24 +135,25 @@ func getAirflowApiUrl() string {
 	return strings.TrimSuffix(plugin.AirflowApiUrl, "/") + "/api/v1"
 }
 
-func getHealth(client *http.Client) (*Health, error) {
-	req, err := http.NewRequest("GET", getAirflowApiUrl()+"/health", nil)
+func getImportErrors(client *http.Client) (*ImportErrors, error) {
+	req, err := http.NewRequest("GET", getAirflowApiUrl()+"/importErrors", nil)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Set("Accept", "application/json")
+	req.SetBasicAuth(plugin.AirflowUsername, plugin.AirflowPassword)
 
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	} else if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("health request returned an invalid status code: %s", resp.Status)
+		return nil, fmt.Errorf("import errors request returned an invalid status code: %s", resp.Status)
 	}
 
 	defer resp.Body.Close()
 
-	var result Health
+	var result ImportErrors
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode health response: %v", err)
 	}

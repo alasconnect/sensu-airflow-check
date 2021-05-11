@@ -2,15 +2,18 @@
 ![Go Test](https://github.com/alasconnect/sensu-airflow-check/workflows/Go%20Test/badge.svg)
 ![goreleaser](https://github.com/alasconnect/sensu-airflow-check/workflows/goreleaser/badge.svg)
 
-# sensu-airflow-check
+# sensu-airflow-check <!-- omit in toc -->
 
-## Table of Contents
+## Table of Contents <!-- omit in toc -->
 - [Overview](#overview)
-- [Files](#files)
+- [Checks](#checks)
 - [Usage examples](#usage-examples)
 - [Configuration](#configuration)
   - [Asset registration](#asset-registration)
   - [Check definition](#check-definition)
+    - [airflow-check](#airflow-check)
+    - [airflow-import-check](#airflow-import-check)
+    - [airflow-dag-check](#airflow-dag-check)
 - [Installation from source](#installation-from-source)
 - [Additional notes](#additional-notes)
 - [Contributing](#contributing)
@@ -24,12 +27,13 @@ The sensu-airflow-check is a [Sensu Check][6] that provides monitoring for airfl
 This collection contains the following checks:
 
  - airflow-check - for checking the health of the airflow metadatabase and scheduler.
- - airflow-dag-check - for checking DAG runs for all or a specific list of DAGs
+ - airflow-import-check - for checking DAG import errors.
+ - airflow-dag-check - for checking DAG runs for all or a specific list of DAGs.
 
 ## Usage examples
 
 ```
-airflow-check --url http://localhost:8080/ --username admin --password admin
+airflow-check --url http://localhost:8080/
 ```
 
 ```
@@ -74,7 +78,24 @@ metadata:
   name: airflow-check
   namespace: default
 spec:
-  command: airflow-check --url {url} --username {username} --password {password}
+  command: airflow-check --url {url}
+  subscriptions:
+  - system
+  runtime_assets:
+  - alasconnect/sensu-airflow-check
+```
+
+#### airflow-import-check
+
+```yml
+---
+type: CheckConfig
+api_version: core/v2
+metadata:
+  name: airflow-import-check
+  namespace: default
+spec:
+  command: airflow-import-check --url {url} --username {username} --password {password}
   subscriptions:
   - system
   runtime_assets:
@@ -108,6 +129,7 @@ From the local path of the sensu-airflow-check repository:
 
 ```
 go build -o bin/airflow-check ./cmd/airflow-check
+go build -o bin/airflow-import-check ./cmd/airflow-import-check
 go build -o bin/airflow-dag-check ./cmd/airflow-dag-check
 ```
 
