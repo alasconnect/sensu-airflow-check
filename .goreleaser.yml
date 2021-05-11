@@ -1,12 +1,74 @@
 builds:
   # List of builds
-  - # First Build
+  - main: ./cmd/airflow-check/main.go
+    id: "airflow-check"
     env:
     - CGO_ENABLED=0
-    main: main.go
     ldflags: '-s -w -X github.com/sensu-community/sensu-plugin-sdk/version.version={{.Version}} -X github.com/sensu-community/sensu-plugin-sdk/version.commit={{.Commit}} -X github.com/sensu-community/sensu-plugin-sdk/version.date={{.Date}}'
     # Set the binary output location to bin/ so archive will comply with Sensu Go Asset structure
-    binary: bin/{{ .ProjectName }}
+    binary: bin/airflow-check
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - 386
+      - arm
+      - arm64
+    goarm:
+      - 5
+      - 6
+      - 7
+    targets:
+      - darwin_amd64
+      - linux_386
+      - linux_amd64
+      - linux_arm_5
+      - linux_arm_6
+      - linux_arm_7
+      - linux_arm64
+      - windows_386
+      - windows_amd64
+
+  - main: ./cmd/airflow-import-check/main.go
+    id: "airflow-import-check"
+    env:
+    - CGO_ENABLED=0
+    ldflags: '-s -w -X github.com/sensu-community/sensu-plugin-sdk/version.version={{.Version}} -X github.com/sensu-community/sensu-plugin-sdk/version.commit={{.Commit}} -X github.com/sensu-community/sensu-plugin-sdk/version.date={{.Date}}'
+    # Set the binary output location to bin/ so archive will comply with Sensu Go Asset structure
+    binary: bin/airflow-import-check
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - 386
+      - arm
+      - arm64
+    goarm:
+      - 5
+      - 6
+      - 7
+    targets:
+      - darwin_amd64
+      - linux_386
+      - linux_amd64
+      - linux_arm_5
+      - linux_arm_6
+      - linux_arm_7
+      - linux_arm64
+      - windows_386
+      - windows_amd64
+
+  - main: ./cmd/airflow-dag-check/main.go
+    id: "airflow-dag-check"
+    env:
+    - CGO_ENABLED=0
+    ldflags: '-s -w -X github.com/sensu-community/sensu-plugin-sdk/version.version={{.Version}} -X github.com/sensu-community/sensu-plugin-sdk/version.commit={{.Commit}} -X github.com/sensu-community/sensu-plugin-sdk/version.date={{.Date}}'
+    # Set the binary output location to bin/ so archive will comply with Sensu Go Asset structure
+    binary: bin/airflow-dag-check
     goos:
       - darwin
       - linux
