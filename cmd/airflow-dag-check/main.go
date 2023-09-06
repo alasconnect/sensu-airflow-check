@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sensu-community/sensu-plugin-sdk/sensu"
-	"github.com/sensu/sensu-go/types"
+	corev2 "github.com/sensu/core/v2"
+	"github.com/sensu/sensu-plugin-sdk/sensu"
 )
 
 // Config represents the check plugin config.
@@ -31,8 +31,8 @@ var (
 		},
 	}
 
-	options = []*sensu.PluginConfigOption{
-		{
+	options = []sensu.ConfigOption{
+		&sensu.PluginConfigOption[string]{
 			Path:      "airflow-api-url",
 			Env:       "",
 			Argument:  "url",
@@ -41,7 +41,7 @@ var (
 			Usage:     "The base URL of the airflow REST API.",
 			Value:     &plugin.AirflowApiUrl,
 		},
-		{
+		&sensu.PluginConfigOption[string]{
 			Path:      "airflow-username",
 			Env:       "",
 			Argument:  "username",
@@ -50,7 +50,7 @@ var (
 			Usage:     "The username used to authenticate against the airflow API.",
 			Value:     &plugin.AirflowUsername,
 		},
-		{
+		&sensu.PluginConfigOption[string]{
 			Path:      "airflow-password",
 			Env:       "",
 			Argument:  "password",
@@ -59,7 +59,7 @@ var (
 			Usage:     "The password used to authenticate against the airflow API.",
 			Value:     &plugin.AirflowPassword,
 		},
-		{
+		&sensu.SlicePluginConfigOption[string]{
 			Path:      "dag",
 			Env:       "",
 			Argument:  "dag",
@@ -68,7 +68,7 @@ var (
 			Usage:     "Explicit list of DAGs to check.",
 			Value:     &plugin.Dags,
 		},
-		{
+		&sensu.PluginConfigOption[int]{
 			Path:      "timeout",
 			Env:       "",
 			Argument:  "timeout",
@@ -85,7 +85,7 @@ func main() {
 	check.Execute()
 }
 
-func checkArgs(event *types.Event) (int, error) {
+func checkArgs(event *corev2.Event) (int, error) {
 	_, err := url.Parse(plugin.AirflowApiUrl)
 	if err != nil {
 		return sensu.CheckStateWarning, fmt.Errorf("failed to parse airflow URL %s: %v", plugin.AirflowApiUrl, err)
@@ -102,7 +102,7 @@ func checkArgs(event *types.Event) (int, error) {
 	return sensu.CheckStateOK, nil
 }
 
-func executeCheck(event *types.Event) (int, error) {
+func executeCheck(event *corev2.Event) (int, error) {
 	client := http.DefaultClient
 	client.Transport = http.DefaultTransport
 	client.Timeout = time.Duration(plugin.Timeout) * time.Second
